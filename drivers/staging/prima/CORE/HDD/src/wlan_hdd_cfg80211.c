@@ -418,11 +418,7 @@ int wlan_hdd_cfg80211_update_band(struct wiphy *wiphy, eCsrBand eBand)
             wiphy->bands[IEEE80211_BAND_5GHZ] = NULL;
             break;
         case eCSR_BAND_5G:
-#ifdef WLAN_FEATURE_P2P
-            wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_p2p_2_4_GHZ;
-#else
             wiphy->bands[IEEE80211_BAND_2GHZ] = NULL;
-#endif
             wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
             break;
         case eCSR_BAND_ALL:
@@ -778,7 +774,7 @@ v_U8_t* wlan_hdd_cfg80211_get_ie_ptr(v_U8_t *pIes, int length, v_U8_t eid)
         if(elem_len > left)
         {
             hddLog(VOS_TRACE_LEVEL_FATAL,
-                    FL("****Invalid IEs eid = %d elem_len=%d left=%d*****"),
+                    "****Invalid IEs eid = %d elem_len=%d left=%d*****\n",
                                                     eid,elem_len,left);
             return NULL;
         }
@@ -1300,7 +1296,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         }
         else if(memcmp(&pIe[2], WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE) == 0)
         {
-             hddLog( VOS_TRACE_LEVEL_INFO, "** WPS IE(len %d) ***", (pIe[1]+2));
+             hddLog( VOS_TRACE_LEVEL_ERROR, "** WPS IE(len %d) ***\n", (pIe[1]+2));
              /* Check 15 bit of WPS IE as it contain information for wps state
               * WPS state
               */
@@ -1535,7 +1531,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter,
         return -EINVAL;
     }
 
-    hddLog(LOG1, 
+    hddLog(LOGE, 
            FL("Waiting for Scan to complete(auto mode) and BSS to start"));
 
     status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
@@ -1677,12 +1673,6 @@ static int wlan_hdd_cfg80211_stop_ap (struct wiphy *wiphy,
     {
         staAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_P2P_CLIENT);
     }
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s:LOGP in Progress. Ignore!!!", __func__);
-        return -EAGAIN;
-    }
 
     if (staAdapter != NULL)
     {
@@ -1808,11 +1798,6 @@ static int wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "device mode=%d\n", pAdapter->device_mode);
 
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-        return -EAGAIN;
-    }
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_GO)
@@ -1855,11 +1840,6 @@ static int wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d\n",
                                 __func__, pAdapter->device_mode);
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-        return -EAGAIN;
-    }
 
     if ((pAdapter->device_mode == WLAN_HDD_SOFTAP) 
 #ifdef WLAN_FEATURE_P2P
@@ -2051,28 +2031,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                        //Fail to Exit BMPS
                        VOS_ASSERT(0);
                     }
-                }
-
-                if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) &&
-                    (pConfig->apRandomBssidEnabled))
-                {
-                    /* To meet Android requirements create a randomized
-                       MAC address of the form 02:1A:11:Fx:xx:xx */
-                    get_random_bytes(&ndev->dev_addr[3], 3);
-                    ndev->dev_addr[0] = 0x02;
-                    ndev->dev_addr[1] = 0x1A;
-                    ndev->dev_addr[2] = 0x11;
-                    ndev->dev_addr[3] |= 0xF0;
-                    memcpy(pAdapter->macAddressCurrent.bytes, ndev->dev_addr,
-                           VOS_MAC_ADDR_SIZE);
-                    pr_info("wlan: Generated HotSpot BSSID "
-                            "%02x:%02x:%02x:%02x:%02x:%02x\n",
-                            ndev->dev_addr[0],
-                            ndev->dev_addr[1],
-                            ndev->dev_addr[2],
-                            ndev->dev_addr[3],
-                            ndev->dev_addr[4],
-                            ndev->dev_addr[5]);
                 }
 
                 hdd_set_ap_ops( pAdapter->dev );
@@ -2984,11 +2942,6 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
     hddLog(VOS_TRACE_LEVEL_INFO, 
                 "%s: device_mode = %d  freq = %d \n",__func__, 
                             pAdapter->device_mode, chan->center_freq);
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-        return -EAGAIN;
-    }
 
     /* 
      * Do freq to chan conversion
@@ -3196,9 +3149,6 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 #endif
 
     ENTER();
-
-    if (!mgmt)
-        return NULL;
 
     memcpy(mgmt->bssid, bss_desc->bssId, ETH_ALEN);
 
@@ -3530,7 +3480,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     if (!req)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR, "request is became NULL\n");
-        pScanInfo->mScanPending = VOS_FALSE;
         goto allow_suspend;
     }
 
@@ -3541,29 +3490,33 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     req->n_channels = 0;
     req->ie = 0;
 
-    complete(&pAdapter->abortscan_event_var);
-    pAdapter->request = NULL;
-    /* Scan is no longer pending */
-    pScanInfo->mScanPending = VOS_FALSE;
-
     /*
      * cfg80211_scan_done informing NL80211 about completion
      * of scanning
      */
     cfg80211_scan_done(req, false);
+    complete(&pAdapter->abortscan_event_var);
+    pAdapter->request = NULL;
+    /* Scan is no longer pending */
+    pScanInfo->mScanPending = VOS_FALSE;
+
 #ifdef WLAN_FEATURE_P2P
     /* Flush out scan result after p2p_serach is done */
     if(pScanInfo->flushP2pScanResults)
     {
         tANI_U8 sessionId = pAdapter->sessionId;
-        sme_ScanFlushP2PResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
+        sme_ScanFlushResult(WLAN_HDD_GET_HAL_CTX(pAdapter), sessionId);
         pScanInfo->flushP2pScanResults = 0;
     }
 #endif
 
 allow_suspend:
-    /* release the wake lock at the end of the scan*/
-    hdd_allow_suspend();
+    /* release the wake lock */
+    if((eConnectionState_NotConnected == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+    {
+        hdd_allow_suspend();
+    }
 
     EXIT();
     return 0;
@@ -3586,6 +3539,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     v_U32_t scanId = 0;
     int status = 0;
     hdd_scaninfo_t *pScanInfo = &pAdapter->scan_info;
+    v_U8_t preventSuspend = 0;
 #ifdef WLAN_FEATURE_P2P
     v_U8_t* pP2pIe = NULL;
 #endif
@@ -3625,12 +3579,6 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         return -EAGAIN;
     }
 
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLoadUnloadInProgress)
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                  "%s:Unloading/Loading in Progress. Ignore!!!", __func__);
-        return -EAGAIN;
-    }
     //Don't Allow Scan and return busy if Remain On 
     //Channel and action frame is pending
     //Otherwise Cancel Remain On Channel and allow Scan
@@ -3778,8 +3726,7 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                                                        request->ie_len);
             if (pP2pIe != NULL)
             {
-                /* no_cck will be set during p2p find to disable 11b rates */
-                if(TRUE == request->no_cck)
+               
                 {
                     tANI_U8 sessionId = pAdapter->sessionId;
                     hddLog(VOS_TRACE_LEVEL_INFO,
@@ -3791,10 +3738,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                     if( request->n_channels == WLAN_HDD_P2P_SOCIAL_CHANNELS )
                     {
                          pScanInfo->flushP2pScanResults = 1;
-                         sme_ScanFlushP2PResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                         sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                           sessionId );
-                         /* set requestType to P2P Discovery */
-                         scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
                     }
 
                     /*
@@ -3810,6 +3755,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                        scanRequest.skipDfsChnlInP2pSearch = 0;
                     }
 
+                    /* set requestType to P2P Discovery */
+                    scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
                 }
             }
 #endif
@@ -3818,15 +3765,14 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     INIT_COMPLETION(pScanInfo->scan_req_completion_event);
 
-    /* acquire the wakelock to avoid the apps suspend during the scan. To 
-     * address the following issues.
-     * 1) Disconnected scenario: we are not allowing the suspend as WLAN is not in 
-     * BMPS/IMPS this result in android trying to suspend aggressively and backing off 
-     * for long time, this result in apps running at full power for long time.
-     * 2) Connected scenario: If we allow the suspend during the scan, RIVA will 
-     * be stuck in full power because of resume BMPS
-     */
-    hdd_prevent_suspend();
+    /*If the station is not connected and recieved a scan request, acquire the 
+     * wake lock to not request the suspend from Android*/
+    if((eConnectionState_NotConnected == 
+         (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState))
+    {
+        preventSuspend = 1;
+        hdd_prevent_suspend();
+    }
 
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
@@ -3837,14 +3783,11 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         hddLog(VOS_TRACE_LEVEL_ERROR,
                 "%s: sme_ScanRequest returned error %d", __func__, status);
         complete(&pScanInfo->scan_req_completion_event);
-        if(eHAL_STATUS_RESOURCES == status)
+        status = -EIO;
+        if(preventSuspend)
         {
-                hddLog(VOS_TRACE_LEVEL_INFO, "%s: HO is in progress.So defer the scan by informing busy",__func__);
-                status = -EBUSY;
-        } else {
-                status = -EIO;
+            hdd_allow_suspend();
         }
-        hdd_allow_suspend();
         goto free_mem;
     }
 
@@ -4623,18 +4566,9 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
         }
     }
 
-    if ( req->channel )
-    {
-        status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
-                                                  req->ssid_len, req->bssid,
-                                                  req->channel->hw_value);
-    }
-    else
-    {
-        status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid,
-                                                  req->ssid_len, req->bssid,
-                                                  0);
-    }
+    status = wlan_hdd_cfg80211_connect_start(pAdapter, req->ssid, 
+                                                req->ssid_len, req->bssid,
+                                                req->channel->hw_value);
 
     if (0 > status)
     {
@@ -5262,7 +5196,7 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     wlan_hdd_get_rssi(pAdapter, &sinfo->signal);
     sinfo->filled |= STATION_INFO_SIGNAL;
 
-    wlan_hdd_get_station_stats(pAdapter);
+    wlan_hdd_get_classAstats(pAdapter);
     rate_flags = pAdapter->hdd_stats.ClassA_stat.tx_rate_flags;
 
     //convert to the UI units of 100kbps
@@ -5458,31 +5392,8 @@ static int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device 
     }
     sinfo->filled |= STATION_INFO_TX_BITRATE;
 
-    sinfo->tx_packets =
-       pAdapter->hdd_stats.summary_stat.tx_frm_cnt[0] +
-       pAdapter->hdd_stats.summary_stat.tx_frm_cnt[1] +
-       pAdapter->hdd_stats.summary_stat.tx_frm_cnt[2] +
-       pAdapter->hdd_stats.summary_stat.tx_frm_cnt[3];
-
-    sinfo->tx_retries =
-       pAdapter->hdd_stats.summary_stat.retry_cnt[0] +
-       pAdapter->hdd_stats.summary_stat.retry_cnt[1] +
-       pAdapter->hdd_stats.summary_stat.retry_cnt[2] +
-       pAdapter->hdd_stats.summary_stat.retry_cnt[3];
-
-    sinfo->tx_failed =
-       pAdapter->hdd_stats.summary_stat.fail_cnt[0] +
-       pAdapter->hdd_stats.summary_stat.fail_cnt[1] +
-       pAdapter->hdd_stats.summary_stat.fail_cnt[2] +
-       pAdapter->hdd_stats.summary_stat.fail_cnt[3];
-
-    sinfo->filled |=
-       STATION_INFO_TX_PACKETS |
-       STATION_INFO_TX_RETRIES |
-       STATION_INFO_TX_FAILED;
-
-       EXIT();
-       return 0;
+    EXIT();
+    return 0;
 }
 
 static int wlan_hdd_cfg80211_set_power_mgmt(struct wiphy *wiphy,
@@ -5681,9 +5592,6 @@ static int wlan_hdd_cfg80211_set_pmksa(struct wiphy *wiphy, struct net_device *d
             break;
         }
     }
-
-    /* Check we compared all entries,if then take the first slot now */
-    if(j == MAX_PMKSAIDS_IN_CACHE) i=0;
 
     if (!BSSIDMatched)
     { 

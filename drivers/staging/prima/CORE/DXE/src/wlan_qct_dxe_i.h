@@ -63,7 +63,6 @@ when           who        what, where, why
  * -------------------------------------------------------------------------*/
 #include "wlan_qct_dxe.h"
 #include "wlan_qct_pal_trace.h"
-#include "wlan_qct_pal_timer.h"
 #include "vos_trace.h"
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -75,9 +74,6 @@ when           who        what, where, why
  * This is temporary definition location to make compile and unit test
  * If official msmreg.h integrated, this part will be eliminated */
 /* Start with base address */
-
-#define WLANDXE_BMU_AVAILABLE_BD_PDU     0x03080084
-
 #ifdef WCN_PRONTO
 #define WLANDXE_CCU_DXE_INT_SELECT       0xfb2050dc
 #define WLANDXE_CCU_DXE_INT_SELECT_STAT  0xfb2050e0
@@ -581,8 +577,6 @@ typedef struct
    WLANDXE_ChannelExConfigType     extraConfig;
    WLANDXE_DMAChannelType          assignedDMAChannel;
    wpt_uint64                      rxDoneHistogram;
-   wpt_timer                       healthMonitorTimer;
-   wpt_msg                        *healthMonitorMsg;
 } WLANDXE_ChannelCBType;
 
 typedef struct

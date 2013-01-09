@@ -457,13 +457,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                         VAR_FLAGS_OPTIONAL,
                         (void *)CFG_AP_COUNTRY_CODE_DEFAULT ),
 
-   REG_VARIABLE( CFG_AP_ENABLE_RANDOM_BSSID_NAME, WLAN_PARAM_Integer,
-                        hdd_config_t, apRandomBssidEnabled,
-                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                        CFG_AP_ENABLE_RANDOM_BSSID_DEFAULT,
-                        CFG_AP_ENABLE_RANDOM_BSSID_MIN,
-                        CFG_AP_ENABLE_RANDOM_BSSID_MAX ),
-
    REG_VARIABLE( CFG_AP_ENABLE_PROTECTION_MODE_NAME, WLAN_PARAM_Integer,
                         hdd_config_t, apProtEnabled, 
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1541,13 +1534,6 @@ REG_VARIABLE( CFG_ENABLE_MCC_ENABLED_NAME, WLAN_PARAM_Integer,
              CFG_ENABLE_MCC_ENABLED_MIN, 
              CFG_ENABLE_MCC_ENABLED_MAX ),
 
-REG_VARIABLE( CFG_ALLOW_MCC_GO_DIFF_BI_NAME, WLAN_PARAM_Integer, 
-             hdd_config_t, allowMCCGODiffBI,
-             VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-             CFG_ALLOW_MCC_GO_DIFF_BI_DEFAULT, 
-             CFG_ALLOW_MCC_GO_DIFF_BI_MIN, 
-             CFG_ALLOW_MCC_GO_DIFF_BI_MAX ),             
-
  REG_VARIABLE( CFG_THERMAL_MIGRATION_ENABLE_NAME, WLAN_PARAM_Integer,
               hdd_config_t, thermalMitigationEnable, 
               VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1621,13 +1607,6 @@ REG_VARIABLE( CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_NAME, WLAN_PARAM_Integer,
               CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_MIN, 
               CFG_IGNORE_DYNAMIC_DTIM_IN_P2P_MODE_MAX ),
 
-
- REG_VARIABLE( CFG_ENABLE_IGNORE_CHAN165, WLAN_PARAM_Integer,
-              hdd_config_t, ignore_chan165, 
-              VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-              CFG_ENABLE_IGNORE_CHAN165_DEFAULT, 
-              CFG_ENABLE_IGNORE_CHAN165_MIN, 
-              CFG_ENABLE_IGNORE_CHAN165_MAX ),              
 };
 
 /*
@@ -1734,8 +1713,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_context_t* pHddCtx)
    char *buffer, *line,*pTemp;
    size_t size;
    char *name, *value;
-   /* cfgIniTable is static to avoid excess stack usage */
-   static tCfgIniEntry cfgIniTable[MAX_CFG_INI_ITEMS];
+   tCfgIniEntry cfgIniTable[MAX_CFG_INI_ITEMS];
    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
 
    memset(cfgIniTable, 0, sizeof(cfgIniTable));
@@ -1997,7 +1975,6 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [enableFirstScan2GOnly] Value = [%u] ",pHddCtx->cfg_ini->enableFirstScan2GOnly);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [skipDfsChnlInP2pSearch] Value = [%u] ",pHddCtx->cfg_ini->skipDfsChnlInP2pSearch);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ignoreDynamicDtimInP2pMode] Value = [%u] ",pHddCtx->cfg_ini->ignoreDynamicDtimInP2pMode);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIgnore_Chan165] Value = [%u] ",pHddCtx->cfg_ini->ignore_chan165);
 }
 
 
@@ -3082,7 +3059,6 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
    smeConfig.csrConfig.fEnableBypass11d          = pConfig->enableBypass11d;
    smeConfig.csrConfig.fEnableDFSChnlScan        = pConfig->enableDFSChnlScan;
-   smeConfig.csrConfig.fIgnore_chan165           = pConfig->ignore_chan165;
    smeConfig.csrConfig.fFirstScanOnly2GChnl      = pConfig->enableFirstScan2GOnly;
 
    //FIXME 11d config is hardcoded
@@ -3143,7 +3119,6 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 
    //Enable/Disable MCC 
    smeConfig.csrConfig.fEnableMCCMode = pConfig->enableMCC;
-   smeConfig.csrConfig.fAllowMCCGODiffBI = pConfig->allowMCCGODiffBI;
 
    halStatus = sme_UpdateConfig( pHddCtx->hHal, &smeConfig);    
    if ( !HAL_STATUS_SUCCESS( halStatus ) )

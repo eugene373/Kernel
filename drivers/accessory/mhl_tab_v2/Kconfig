@@ -17,3 +17,7 @@ config MHL_D3_SUPPORT
 config MHL_NEW_CBUS_MSC_CMD
 	bool "Read DCAP for distinguish TA and USB"
 	default n
+
+config MHL_SWING_LEVEL
+	bool "Tune mhl drive strength"
+	default n

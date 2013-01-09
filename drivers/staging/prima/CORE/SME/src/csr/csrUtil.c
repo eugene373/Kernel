@@ -1596,6 +1596,7 @@ tANI_BOOLEAN csrIsConcurrentSessionRunning( tpAniSirGlobal pMac )
     return ( fRc );
 }
 
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
 tANI_BOOLEAN csrIsInfraApStarted( tpAniSirGlobal pMac )
 {
     tANI_U32 sessionId;
@@ -1613,6 +1614,7 @@ tANI_BOOLEAN csrIsInfraApStarted( tpAniSirGlobal pMac )
     return ( fRc );
 
 }
+#endif
 
 tANI_BOOLEAN csrIsBTAMP( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
@@ -2424,7 +2426,7 @@ tANI_BOOLEAN csrIsPhyModeMatch( tpAniSirGlobal pMac, tANI_U32 phyMode,
                                 tDot11fBeaconIEs *pIes)
 {
     tANI_BOOLEAN fMatch = FALSE;
-    eCsrPhyMode phyModeInBssDesc = 0, phyMode2;
+    eCsrPhyMode phyModeInBssDesc, phyMode2;
     eCsrCfgDot11Mode cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_TAURUS;
     tANI_U32 bitMask, loopCount;
 
@@ -2807,10 +2809,6 @@ eHalStatus csrValidateBeaconInterval(tpAniSirGlobal pMac, tANI_U8 channelId,
                     else if(pMac->roam.roamSession[sessionId].bssParams.bssPersona
                                       == VOS_P2P_GO_MODE) //Check for P2P go scenario
                     {
-                        /* if GO in MCC support different beacon interval, return success */
-                        if ( pMac->roam.configParam.fAllowMCCGODiffBI == TRUE)
-                            return eHAL_STATUS_SUCCESS;
-                        
                         if ((pMac->roam.roamSession[sessionId].bssParams.operationChn 
                                 != channelId ) &&
                             (pMac->roam.roamSession[sessionId].bssParams.beaconInterval 
@@ -5894,35 +5892,31 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
             smsLog(pMac, LOGE, FL("  No IEs\n"));
             break;
         }
-        if( pMac->roam.configParam.fEnforceDefaultDomain ||
-            pMac->roam.configParam.fEnforceCountryCodeMatch )
+        //Make sure this country is recognizable
+        if( pIes->Country.present )
         {
-            //Make sure this country is recognizable
-            if( pIes->Country.present )
+            status = csrGetRegulatoryDomainForCountry( pMac, pIes->Country.country, &domainId );
+            if( !HAL_STATUS_SUCCESS( status ) )
             {
-                status = csrGetRegulatoryDomainForCountry( pMac, pIes->Country.country, &domainId );
-                if( !HAL_STATUS_SUCCESS( status ) )
-                {
-                    fRet = eANI_BOOLEAN_FALSE;
-                    break;
-                }
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
             }
-            //check whether it is needed to enforce to the default regulatory domain first
-            if( pMac->roam.configParam.fEnforceDefaultDomain )
+        }
+        //check whether it is needed to enforce to the default regulatory domain first
+        if( pMac->roam.configParam.fEnforceDefaultDomain )
+        {
+            if( domainId != pMac->scan.domainIdCurrent )
             {
-                if( domainId != pMac->scan.domainIdCurrent )
-                {
-                    fRet = eANI_BOOLEAN_FALSE;
-                    break;
-                }
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
             }
-            if( pMac->roam.configParam.fEnforceCountryCodeMatch )
-            {
+        }
+        if( pMac->roam.configParam.fEnforceCountryCodeMatch )
+        {
             if( domainId >= REGDOMAIN_COUNT )
-                {
-                    fRet = eANI_BOOLEAN_FALSE;
-                    break;
-                }
+            {
+                fRet = eANI_BOOLEAN_FALSE;
+                break;
             }
         }
         if( pCountry )
@@ -6215,7 +6209,7 @@ tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId)
     * The current work-around is to process setcontext_rsp and removekey_rsp no matter what the 
     * state is.
     */
-    smsLog( pMac, LOG2, FL(" is not what it intends to. Must be revisit or removed\n") );
+    smsLog( pMac, LOGE, FL(" is not what it intends to. Must be revisit or removed\n") );
     if( (NULL == pSession) || 
         ( csrIsConnStateDisconnected( pMac, sessionId ) && 
         (pSession->pCurRoamProfile != NULL) &&
@@ -6247,6 +6241,7 @@ tANI_U16 sme_ChnToFreq(tANI_U8 chanNum)
    return (0);
 }
 
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
 /* Disconnect all active sessions by sending disassoc. This is mainly used to disconnect the remaining session when we 
  * transition from concurrent sessions to a single session. The use case is Infra STA and wifi direct multiple sessions are up and 
  * P2P session is removed. The Infra STA session remains and should resume BMPS if BMPS is enabled by default. However, there
@@ -6266,50 +6261,4 @@ void csrDisconnectAllActiveSessions(tpAniSirGlobal pMac)
         }
     }
 }
-
-#ifdef FEATURE_WLAN_LFR
-tANI_BOOLEAN csrIsChannelPresentInList( 
-        tANI_U8 *pChannelList,
-        int  numChannels,
-        tANI_U8   channel 
-        )
-{
-    int i = 0;
-
-    // Check for NULL pointer
-    if (!pChannelList) return FALSE;
-
-    // Look for the channel in the list
-    for (i = 0; i < numChannels; i++)
-    {
-        if (pChannelList[i] == channel) 
-            return TRUE;
-    }
-
-    return FALSE;
-}
-
-VOS_STATUS csrAddToChannelListFront( 
-        tANI_U8 *pChannelList,
-        int  numChannels,
-        tANI_U8   channel 
-        )
-{
-    int i = 0;
-
-    // Check for NULL pointer
-    if (!pChannelList) return eHAL_STATUS_E_NULL_VALUE;
-
-    // Make room for the addition.  (Start moving from the back.)
-    for (i = numChannels; i > 0; i--)
-    {
-        pChannelList[i] = pChannelList[i-1]; 
-    }
-
-    // Now add the NEW channel...at the front
-    pChannelList[0] = channel; 
-
-    return eHAL_STATUS_SUCCESS;
-}
 #endif
-

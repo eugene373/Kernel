@@ -369,12 +369,12 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
 
     // We need to send the IEs to the supplicant.
     buff = kmalloc(IW_CUSTOM_MAX, GFP_ATOMIC);
+    vos_mem_zero(buff, IW_CUSTOM_MAX); 
     if (buff == NULL) 
     {
         hddLog(LOGE, "%s: kmalloc unable to allocate memory", __func__); 
         return;
     }
-    vos_mem_zero(buff, IW_CUSTOM_MAX); 
 
     // Sme needs to send the RIC IEs first 
     str_len = strlcpy(buff, "RIC=", IW_CUSTOM_MAX);
@@ -680,7 +680,13 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
             /* To avoid wpa_supplicant sending "HANGED" CMD to ICS UI */
             if( eCSR_ROAM_LOSTLINK == roamStatus )
             {
-                cfg80211_disconnected(dev, pRoamInfo->reasonCode, NULL, 0, GFP_KERNEL);
+                /* TODO: Need to pass proper reason code
+                   currently we are passing only one reason code.
+                   Currently we are passing WLAN_REASON_DISASSOC_STA_HAS_LEFT
+                   rather than WLAN_REASON_DISASSOC_DUE_TO_INACTIVITY
+                   to avoid the supplicant fast reconnect */
+
+                cfg80211_disconnected(dev, WLAN_REASON_DISASSOC_STA_HAS_LEFT, NULL, 0, GFP_KERNEL);
             }
             else
             {
@@ -918,32 +924,20 @@ static void hdd_SendReAssocEvent(struct net_device *dev, hdd_adapter_t *pAdapter
 {
     unsigned int len = 0;
     u8 *pFTAssocRsp = NULL;
-    v_U8_t *rspRsnIe = kmalloc(IW_GENERIC_IE_MAX, GFP_KERNEL);
+    v_U8_t rspRsnIe[IW_GENERIC_IE_MAX];
     tANI_U32 rspRsnLength = 0;
     struct ieee80211_channel *chan;
 
-    if (!rspRsnIe)
-    {
-        hddLog(LOGE, "%s: Unable to allocate RSN IE", __func__);
-        return;
-    }
-
     if (pCsrRoamInfo == NULL)
-    {
-        hddLog(LOGE, "%s: Invalid CSR roam info", __func__);
-        goto done;
-    }
+        return;
 
     if (pCsrRoamInfo->nAssocRspLength == 0)
-    {
-        hddLog(LOGE, "%s: Invalid assoc response length", __func__);
-        goto done;
-    }
+        return;
 
     pFTAssocRsp = (u8 *)(pCsrRoamInfo->pbFrames + pCsrRoamInfo->nBeaconLength +
                     pCsrRoamInfo->nAssocReqLength);
     if (pFTAssocRsp == NULL)
-        goto done;
+        return;
 
     //pFTAssocRsp needs to point to the IEs
     pFTAssocRsp += FT_ASSOC_RSP_IES_OFFSET;
@@ -954,16 +948,13 @@ static void hdd_SendReAssocEvent(struct net_device *dev, hdd_adapter_t *pAdapter
     // Send the Assoc Resp, the supplicant needs this for initial Auth.
     len = pCsrRoamInfo->nAssocRspLength - FT_ASSOC_RSP_IES_OFFSET;
     rspRsnLength = len;
+    memset(rspRsnIe, 0, IW_GENERIC_IE_MAX);
     memcpy(rspRsnIe, pFTAssocRsp, len);
-    memset(rspRsnIe + len, 0, IW_GENERIC_IE_MAX - len);
 
     chan = ieee80211_get_channel(pAdapter->wdev.wiphy, (int) pCsrRoamInfo->pBssDesc->channelId);
     cfg80211_roamed(dev,chan,pCsrRoamInfo->bssid,
                     reqRsnIe, reqRsnLength,
                     rspRsnIe, rspRsnLength,GFP_KERNEL);
-
-done:
-    kfree(rspRsnIe);
 }
 #endif /* FEATURE_WLAN_CCX */
 
@@ -1197,9 +1188,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 GFP_KERNEL);
         }
 #endif 
-
-        /*Clear the roam profile*/
-        hdd_clearRoamProfileIe( pAdapter );
 
         netif_tx_disable(dev);
         netif_carrier_off(dev);
@@ -1565,7 +1553,6 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;
     hdd_wext_state_t *pWextState= WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
-    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
             "CSR Callback: status= %d result= %d roamID=%ld", 
@@ -1617,30 +1604,10 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             // Where in we will not mark the link down
             // Also we want to stop tx at this point when we will be
             // doing disassoc at this time. This saves 30-60 msec
-            // after reassoc.
+            // after reassoc. We see old traffic from old connection on new channel
             {
                 struct net_device *dev = pAdapter->dev;
                 netif_tx_disable(dev);
-                /*
-        		 * Deregister for this STA with TL with the objective to flush
-        		 * all the packets for this STA from wmm_tx_queue. If not done here,
-        		 * we would run into a race condition (CR390567) wherein TX
-        		 * thread would schedule packets from wmm_tx_queue AFTER peer STA has
-        		 * been deleted. And, these packets get assigned with a STA idx of
-        		 * self-sta (since the peer STA has been deleted) and get transmitted
-        		 * on the new channel before the reassoc request. Since there will be
-        		 * no ACK on the new channel, each packet gets retransmitted which
-        		 * takes several seconds before the transmission of reassoc request.
-        		 * This leads to reassoc-timeout and roam failure.
-    		     */
-                status = hdd_roamDeregisterSTA( pAdapter, pHddStaCtx->conn_info.staId [0] );
-                if ( !VOS_IS_STATUS_SUCCESS(status ) )
-                {
-                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                            FL("hdd_roamDeregisterSTA() failed to for staID %d.  Status= %d [0x%x]"),
-                            pHddStaCtx->conn_info.staId[0], status, status );
-                    halStatus = eHAL_STATUS_FAILURE;
-                }		
             }
             pHddStaCtx->ft_carrier_on = TRUE;
             break;
@@ -1649,6 +1616,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
         case eCSR_ROAM_SHOULD_ROAM:
            // Dont need to do anything
             {
+                VOS_STATUS  status = VOS_STATUS_SUCCESS;
                 struct net_device *dev = pAdapter->dev;
                 hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
                 // notify apps that we can't pass traffic anymore
@@ -1662,7 +1630,6 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                 }
 #endif
 
-#if  !(defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_CCX) || defined(FEATURE_WLAN_LFR))
                 //We should clear all sta register with TL, for now, only one.
                 status = hdd_roamDeregisterSTA( pAdapter, pHddStaCtx->conn_info.staId [0] );
                 if ( !VOS_IS_STATUS_SUCCESS(status ) )
@@ -1670,9 +1637,9 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                         FL("hdd_roamDeregisterSTA() failed to for staID %d.  Status= %d [0x%x]"),
                                         pHddStaCtx->conn_info.staId[0], status, status );
-                    halStatus = eHAL_STATUS_FAILURE;
+                    status = eHAL_STATUS_FAILURE;
                 }
-#endif
+
                 // Clear saved connection information in HDD
                 hdd_connRemoveConnectInfo( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) );
             }

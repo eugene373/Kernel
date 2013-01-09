@@ -329,7 +329,7 @@ typedef enum
 #define CFG_SCAN_RESULT_AGE_TIME_CPS_DEFAULT   ( 600 )
 
 #define CFG_RSSI_CATEGORY_GAP_NAME             "gRssiCatGap"
-#define CFG_RSSI_CATEGORY_GAP_MIN              ( 5 )  
+#define CFG_RSSI_CATEGORY_GAP_MIN              ( 10 )  
 #define CFG_RSSI_CATEGORY_GAP_MAX              ( 100 )  
 #define CFG_RSSI_CATEGORY_GAP_DEFAULT          ( 30 )
 
@@ -383,11 +383,6 @@ typedef enum
 #define CFG_AP_COUNTRY_CODE_MIN                "USI"
 #define CFG_AP_COUNTRY_CODE_MAX                "USI"
 #define CFG_AP_COUNTRY_CODE_DEFAULT            "FFF"
-
-#define CFG_AP_ENABLE_RANDOM_BSSID_NAME            "gEnableApRandomBssid"
-#define CFG_AP_ENABLE_RANDOM_BSSID_MIN             ( 0 )
-#define CFG_AP_ENABLE_RANDOM_BSSID_MAX             ( 1 )
-#define CFG_AP_ENABLE_RANDOM_BSSID_DEFAULT         ( 0 )
 
 #define CFG_AP_ENABLE_PROTECTION_MODE_NAME            "gEnableApProt"
 #define CFG_AP_ENABLE_PROTECTION_MODE_MIN             ( 0 )
@@ -1007,7 +1002,7 @@ typedef enum
 #define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_DEFAULT   (120)
 
 #define CFG_NEIGHBOR_SCAN_CHAN_LIST_NAME                      "gNeighborScanChannelList"
-#define CFG_NEIGHBOR_SCAN_CHAN_LIST_DEFAULT                   ""
+#define CFG_NEIGHBOR_SCAN_CHAN_LIST_DEFAULT                   "1,6"
 
 #define CFG_NEIGHBOR_SCAN_MIN_CHAN_TIME_NAME                  "gNeighborScanChannelMinTime"
 #define CFG_NEIGHBOR_SCAN_MIN_CHAN_TIME_MIN                   (10)   
@@ -1122,11 +1117,6 @@ typedef enum
 #define CFG_ENABLE_DFS_CHNL_SCAN_MIN               ( 0 )
 #define CFG_ENABLE_DFS_CHNL_SCAN_MAX               ( 1 )
 #define CFG_ENABLE_DFS_CHNL_SCAN_DEFAULT           ( 1 )
-
-#define CFG_ENABLE_IGNORE_CHAN165                   "gIgnore_Chan165"
-#define CFG_ENABLE_IGNORE_CHAN165_MIN               ( 0 )
-#define CFG_ENABLE_IGNORE_CHAN165_MAX               ( 1 )
-#define CFG_ENABLE_IGNORE_CHAN165_DEFAULT           ( 0 )
 
 typedef enum
 {
@@ -1301,16 +1291,6 @@ typedef enum
 #define CFG_ENABLE_MCC_ENABLED_DEFAULT          ( 0 ) 
 
 /*
- * Allow GO in MCC mode to accept different beacon interval than STA's.
- * Added for Wi-Fi Cert. 5.1.12
- * Default: Disable
- */
-#define CFG_ALLOW_MCC_GO_DIFF_BI_NAME           "gAllowMCCGODiffBI"
-#define CFG_ALLOW_MCC_GO_DIFF_BI_MIN            ( 0 )
-#define CFG_ALLOW_MCC_GO_DIFF_BI_MAX            ( 1 )
-#define CFG_ALLOW_MCC_GO_DIFF_BI_DEFAULT        ( 0 ) 
-
-/*
  * Enable/Disable Thermal Mitigation feature
  * Default: Disable
  */
@@ -1425,7 +1405,6 @@ typedef struct
 
 #ifdef WLAN_SOFTAP_FEATURE
    v_BOOL_t      apUapsdEnabled;
-   v_BOOL_t      apRandomBssidEnabled;
    v_BOOL_t      apProtEnabled;
    v_U16_t       apProtection;
    v_BOOL_t      apOBSSProtEnabled;
@@ -1613,7 +1592,6 @@ typedef struct
    v_S31_t                     linkSpeedRssiHigh;
    v_S31_t                     linkSpeedRssiLow;
    v_U8_t                      enableMCC;
-   v_U8_t                      allowMCCGODiffBI;
 #ifdef WLAN_FEATURE_P2P
    v_BOOL_t                    isP2pDeviceAddrAdministrated;
 #endif
@@ -1631,7 +1609,6 @@ typedef struct
    v_BOOL_t                    enableFirstScan2GOnly;
    v_BOOL_t                    skipDfsChnlInP2pSearch;
    v_BOOL_t                    ignoreDynamicDtimInP2pMode;
-   v_U8_t                      ignore_chan165;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

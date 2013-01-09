@@ -216,6 +216,8 @@ limGetBssidFromBD(tpAniSirGlobal pMac, tANI_U8 * pRxPacketInfo, tANI_U8 *bssId, 
 char *
 limMlmStateStr(tLimMlmStates state)
 {
+
+#ifdef FIXME_GEN6
     switch (state)
     {
         case eLIM_MLM_OFFLINE_STATE:
@@ -277,6 +279,8 @@ limMlmStateStr(tLimMlmStates state)
         default:
             return "INVALID MLM state\n";
     }
+#endif
+return "";
 }
 
 void
@@ -1597,10 +1601,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     tpPESession       psessionEntry = limIsApSessionActive(pMac);
 
     if (psessionEntry == NULL)
-    {
-        PELOGE(limLog(pMac, LOGE, FL(" Session not found\n"));)
         return;
-    }
     
     beaconParams.paramChangeBitmap = 0;
     /*
@@ -1626,7 +1627,7 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     else
     {
 
-        if (!psessionEntry->gLimOlbcParams.numSta)
+        if (!psessionEntry->gLimOverlap11gParams.numSta)
         {
             if (psessionEntry->gLimOlbcParams.protectionEnabled)
             {
@@ -5549,9 +5550,6 @@ void limUpdateStaRunTimeHTSwitchChnlParams( tpAniSirGlobal   pMac,
                                  "nel Offset: %d, Channel Width: %d\n" ),
                 pHTInfo->primaryChannel, secondaryChnlOffset,
                 psessionEntry->htRecommendedTxWidthSet );
-        psessionEntry->channelChangeReasonCode=LIM_SWITCH_CHANNEL_OPERATION;
-        pMac->lim.gpchangeChannelCallback = NULL;
-        pMac->lim.gpchangeChannelData = NULL;
 
 #if defined WLAN_FEATURE_VOWIFI  
         limSendSwitchChnlParams( pMac, ( tANI_U8 ) pHTInfo->primaryChannel,
@@ -5625,6 +5623,12 @@ void limUpdateStaRunTimeHTCapability( tpAniSirGlobal   pMac,
 void limUpdateStaRunTimeHTInfo( tpAniSirGlobal  pMac,
                                 tDot11fIEHTInfo *pHTInfo , tpPESession psessionEntry)
 {
+    if ( psessionEntry->htSecondaryChannelOffset != ( tANI_U8)pHTInfo->secondaryChannelOffset)
+    {
+        psessionEntry->htSecondaryChannelOffset = ( ePhyChanBondState )pHTInfo->secondaryChannelOffset;
+        // Send change notification to HAL
+    }
+
     if ( psessionEntry->htRecommendedTxWidthSet != ( tANI_U8 )pHTInfo->recommendedTxWidthSet )
     {
         psessionEntry->htRecommendedTxWidthSet = ( tANI_U8 )pHTInfo->recommendedTxWidthSet;
@@ -7702,7 +7706,7 @@ v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid,eS
         if(elem_len > left)
         {
             limLog(pMac, LOGE,
-                    FL("****Invalid IEs eid = %d elem_len=%d left=%d*****"),
+                    "****Invalid IEs eid = %d elem_len=%d left=%d*****\n",
                                                     eid,elem_len,left);
             return NULL;
         }

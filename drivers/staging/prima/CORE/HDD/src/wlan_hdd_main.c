@@ -141,9 +141,6 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 /* the Android framework expects this param even though we don't use it */
 #define BUF_LEN 20
 static char fwpath[BUF_LEN];
-#ifndef MODULE
-static int wlan_hdd_inited = 0;
-#endif
 
 /*
  * The rate at which the driver sends RESTART event to supplicant
@@ -291,17 +288,9 @@ extern void unregister_wlan_suspend(void);
 void hdd_unregister_mcast_bcast_filter(hdd_context_t *pHddCtx);
 void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx);
 #endif
+#ifdef WLAN_SOFTAP_FEATURE
 //variable to hold the insmod parameters
 static int con_mode = 0;
-#ifndef MODULE
-/* current con_mode - used only for statically linked driver
- * con_mode is changed by userspace to indicate a mode change which will
- * result in calling the module exit and init functions. The module
- * exit function will clean up based on the value of con_mode prior to it
- * being changed by userspace. So curr_con_mode records the current con_mode 
- * for exit when con_mode becomes the next mode for init
- */
-static int curr_con_mode = 0;
 #endif
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
@@ -394,7 +383,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
        hdd_context_t *pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
 
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-                  "%s: Received %s cmd from Wi-Fi GUI***", __func__, command);
+                   "***Received %s cmd from Wi-Fi GUI***", command);
 
        if (strncmp(command, "P2P_DEV_ADDR", 12) == 0 )
        {
@@ -415,7 +404,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
    
            /* First 8 bytes will have "SETBAND " and 
             * 9 byte will have band setting value */
-           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: SetBandCommand Info  comm %s UL %d, TL %d", __FUNCTION__, priv_data.buf, priv_data.used_len, priv_data.total_len);
         
            /* Change band request received */
@@ -435,11 +424,6 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
            }
        }
-       else {
-           hddLog( VOS_TRACE_LEVEL_WARN, "%s: Unsupported GUI command %s",
-                   __func__, command);
-       }
-
    }
 exit:
    if (command)
@@ -810,7 +794,7 @@ void hdd_full_pwr_cbk(void *callbackContext, eHalStatus status)
 {
    hdd_context_t *pHddCtx = (hdd_context_t*)callbackContext;
 
-   hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"HDD full Power callback status = %d", status);
+   hddLog(VOS_TRACE_LEVEL_ERROR,"HDD full Power callback status = %d", status);
    if(&pHddCtx->full_pwr_comp_var)
    {
       complete(&pHddCtx->full_pwr_comp_var);
@@ -3170,131 +3154,6 @@ void hdd_allow_suspend(void)
 
 /**---------------------------------------------------------------------------
 
-  \brief hdd_exchange_version_and_caps() - HDD function to exchange version and capability
-                                                                 information between Host and Riva
-
-  This function gets reported version of FW
-  It also finds the version of Riva headers used to compile the host
-  It compares the above two and prints a warning if they are different
-  It gets the SW and HW version string
-  Finally, it exchanges capabilities between host and Riva i.e. host and riva exchange a msg
-  indicating the features they support through a bitmap
-
-  \param  - pHddCtx - Pointer to HDD context
-
-  \return -  void
-
-  --------------------------------------------------------------------------*/
-
-void hdd_exchange_version_and_caps(hdd_context_t *pHddCtx)
-{
-
-   tSirVersionType versionCompiled;
-   tSirVersionType versionReported;
-   tSirVersionString versionString;
-   tANI_U8 fwFeatCapsMsgSupported = 0;
-   VOS_STATUS vstatus;
-
-   /* retrieve and display WCNSS version information */
-   do {
-
-      vstatus = sme_GetWcnssWlanCompiledVersion(pHddCtx->hHal,
-                                                &versionCompiled);
-      if (!VOS_IS_STATUS_SUCCESS(vstatus))
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: unable to retrieve WCNSS WLAN compiled version",
-                __FUNCTION__);
-         break;
-      }
-
-      vstatus = sme_GetWcnssWlanReportedVersion(pHddCtx->hHal,
-                                                &versionReported);
-      if (!VOS_IS_STATUS_SUCCESS(vstatus))
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: unable to retrieve WCNSS WLAN reported version",
-                __FUNCTION__);
-         break;
-      }
-
-      if ((versionCompiled.major != versionReported.major) ||
-          (versionCompiled.minor != versionReported.minor) ||
-          (versionCompiled.version != versionReported.version) ||
-          (versionCompiled.revision != versionReported.revision))
-      {
-         pr_err("%s: WCNSS WLAN Version %u.%u.%u.%u, "
-                "Host expected %u.%u.%u.%u\n",
-                WLAN_MODULE_NAME,
-                (int)versionReported.major,
-                (int)versionReported.minor,
-                (int)versionReported.version,
-                (int)versionReported.revision,
-                (int)versionCompiled.major,
-                (int)versionCompiled.minor,
-                (int)versionCompiled.version,
-                (int)versionCompiled.revision);
-      }
-      else
-      {
-         pr_info("%s: WCNSS WLAN version %u.%u.%u.%u\n",
-                 WLAN_MODULE_NAME,
-                 (int)versionReported.major,
-                 (int)versionReported.minor,
-                 (int)versionReported.version,
-                 (int)versionReported.revision);
-      }
-
-      vstatus = sme_GetWcnssSoftwareVersion(pHddCtx->hHal,
-                                            versionString,
-                                            sizeof(versionString));
-      if (!VOS_IS_STATUS_SUCCESS(vstatus))
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: unable to retrieve WCNSS software version string",
-                __FUNCTION__);
-         break;
-      }
-
-      pr_info("%s: WCNSS software version %s\n",
-              WLAN_MODULE_NAME, versionString);
-
-      vstatus = sme_GetWcnssHardwareVersion(pHddCtx->hHal,
-                                            versionString,
-                                            sizeof(versionString));
-      if (!VOS_IS_STATUS_SUCCESS(vstatus))
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,
-                "%s: unable to retrieve WCNSS hardware version string",
-                __FUNCTION__);
-         break;
-      }
-
-      pr_info("%s: WCNSS hardware version %s\n",
-              WLAN_MODULE_NAME, versionString);
-
-      /* 1.Check if FW version is greater than 0.1.1.0. Only then send host-FW capability exchange message 
-         2.Host-FW capability exchange message  is only present on riva 1.1 so 
-            send the message only if it the riva is 1.1
-            minor numbers for different riva branches:
-                0 -> (1.0)Mainline Build
-                1 -> (1.1)Mainline Build
-                2->(1.04) Stability Build
-       */
-      if (((versionReported.major>0) || (versionReported.minor>1) || 
-         ((versionReported.minor>=1) && (versionReported.version>=1)))
-         && ((versionReported.major == 1) && (versionReported.minor >= 1)))
-         fwFeatCapsMsgSupported = 1;
- 
-      if (fwFeatCapsMsgSupported)
-         sme_featureCapsExchange(pHddCtx->hHal);
-
-   } while (0);
-
-}
-
-/**---------------------------------------------------------------------------
-
   \brief hdd_wlan_startup() - HDD init function
 
   This is the driver startup code executed once a WLAN device has been detected
@@ -3648,8 +3507,107 @@ int hdd_wlan_startup(struct device *dev )
       goto err_vosclose;
    }
 
-   /* Exchange capability info between Host and FW and also get versioning info from FW */
-   hdd_exchange_version_and_caps(pHddCtx);
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   /* retrieve and display WCNSS version information */
+   do {
+      tSirVersionType versionCompiled;
+      tSirVersionType versionReported;
+      tSirVersionString versionString;
+      tANI_U8 fwFeatCapsMsgSupported = 0;
+      VOS_STATUS vstatus;
+
+      vstatus = sme_GetWcnssWlanCompiledVersion(pHddCtx->hHal,
+                                                &versionCompiled);
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS WLAN compiled version",
+                __FUNCTION__);
+         break;
+      }
+
+      vstatus = sme_GetWcnssWlanReportedVersion(pHddCtx->hHal,
+                                                &versionReported);
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS WLAN reported version",
+                __FUNCTION__);
+         break;
+      }
+
+      if ((versionCompiled.major != versionReported.major) ||
+          (versionCompiled.minor != versionReported.minor) ||
+          (versionCompiled.version != versionReported.version) ||
+          (versionCompiled.revision != versionReported.revision))
+      {
+         pr_err("%s: WCNSS WLAN Version %u.%u.%u.%u, "
+                "Host expected %u.%u.%u.%u\n",
+                WLAN_MODULE_NAME,
+                (int)versionReported.major,
+                (int)versionReported.minor,
+                (int)versionReported.version,
+                (int)versionReported.revision,
+                (int)versionCompiled.major,
+                (int)versionCompiled.minor,
+                (int)versionCompiled.version,
+                (int)versionCompiled.revision);
+      }
+      else
+      {
+         pr_info("%s: WCNSS WLAN version %u.%u.%u.%u\n",
+                 WLAN_MODULE_NAME,
+                 (int)versionReported.major,
+                 (int)versionReported.minor,
+                 (int)versionReported.version,
+                 (int)versionReported.revision);
+      }
+
+      vstatus = sme_GetWcnssSoftwareVersion(pHddCtx->hHal,
+                                            versionString,
+                                            sizeof(versionString));
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS software version string",
+                __FUNCTION__);
+         break;
+      }
+
+      pr_info("%s: WCNSS software version %s\n",
+              WLAN_MODULE_NAME, versionString);
+
+      vstatus = sme_GetWcnssHardwareVersion(pHddCtx->hHal,
+                                            versionString,
+                                            sizeof(versionString));
+      if (!VOS_IS_STATUS_SUCCESS(vstatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,
+                "%s: unable to retrieve WCNSS hardware version string",
+                __FUNCTION__);
+         break;
+      }
+
+      pr_info("%s: WCNSS hardware version %s\n",
+              WLAN_MODULE_NAME, versionString);
+
+      /* 1.Check if FW version is greater than 0.1.1.0. Only then send host-FW capability exchange message 
+              2.Host-FW capability exchange message  is only present on riva 1.1 so 
+                send the message only if it the riva is 1.1
+                minor numbers for different riva branches:
+                0 -> (1.0)Mainline Build
+                1 -> (1.1)Mainline Build
+                2->(1.04) Stability Build
+         */
+      if (((versionReported.major>0) || (versionReported.minor>1) || 
+         ((versionReported.minor>=1) && (versionReported.version>=1)))
+         && ((versionReported.major == 1) && (versionReported.minor >= 1)))
+         fwFeatCapsMsgSupported = 1;
+      if (fwFeatCapsMsgSupported)
+         sme_featureCapsExchange(pHddCtx->hHal);
+   } while (0);
+
+#endif // FEATURE_WLAN_INTEGRATED_SOC
 
    status = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -4119,11 +4077,12 @@ static int hdd_driver_init( void)
    }
 #endif // ANI_BUS_TYPE_SDIO
 
-#ifndef MODULE
-      /* For statically linked driver, call hdd_set_conparam to update curr_con_mode
-       */
-      hdd_set_conparam((v_UINT_t)con_mode);
-#endif
+#if defined(FEATURE_WLAN_INTEGRATED_SOC) && defined(ANI_MANF_DIAG)
+      if(5 == con_mode)
+      {
+         hdd_set_conparam(VOS_FTM_MODE);
+      }
+#endif /* FEATURE_WLAN_INTEGRATED_SOC && ANI_MANF_DIAG */
 
       // Call our main init function
       if(hdd_wlan_startup(dev)) {
@@ -4201,28 +4160,60 @@ static int __init hdd_module_init ( void)
 {
    return hdd_driver_init();
 }
+
+static int fwpath_changed_handler(const char *kmessage,
+                                 struct kernel_param *kp)
+{
+   /* nothing to do when driver is DLKM */
+   return 0;
+}
 #else /* #ifdef MODULE */
 static int __init hdd_module_init ( void)
 {
    /* Driver initialization is delayed to fwpath_changed_handler */
    return 0;
 }
+
+/**---------------------------------------------------------------------------
+
+  \brief fwpath_changed_handler() - Handler Function
+
+   This is the driver entry point 
+   - delayed driver initialization when driver is statically linked
+   - invoked when module parameter is modified from userpspace to signal 
+    initializing the WLAN driver
+
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+static int fwpath_changed_handler(const char *kmessage,
+                                 struct kernel_param *kp)
+{
+   static int drv_inited = 0;
+
+   if (drv_inited) {
+      return 0;
+   }
+
+   drv_inited = 1;
+
+   return hdd_driver_init();
+}
 #endif /* #ifdef MODULE */
 
 
 /**---------------------------------------------------------------------------
 
-  \brief hdd_driver_exit() - Exit function
+  \brief hdd_module_exit() - Exit function
 
-  This is the driver exit point (invoked when module is unloaded using rmmod
-  or con_mode was changed by userspace)
+  This is the driver exit point (invoked when module is unloaded using rmmod)
 
   \param  - None
 
   \return - None
 
   --------------------------------------------------------------------------*/
-static void hdd_driver_exit(void)
+static void __exit hdd_module_exit(void)
 {
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext = NULL;
@@ -4280,93 +4271,7 @@ done:
    pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
 }
 
-/**---------------------------------------------------------------------------
-
-  \brief hdd_module_exit() - Exit function
-
-  This is the driver exit point (invoked when module is unloaded using rmmod)
-
-  \param  - None
-
-  \return - None
-
-  --------------------------------------------------------------------------*/
-static void __exit hdd_module_exit(void)
-{
-   hdd_driver_exit();
-}
-
-#ifdef MODULE
-static int fwpath_changed_handler(const char *kmessage,
-                                 struct kernel_param *kp)
-{
-   /* nothing to do when driver is DLKM */
-   return 0;
-}
-
-static int con_mode_handler(const char *kmessage,
-                                 struct kernel_param *kp)
-{
-   return 0;
-}
-#else /* #ifdef MODULE */
-/**---------------------------------------------------------------------------
-
-  \brief fwpath_changed_handler() - Handler Function
-
-   This is the driver entry point 
-   - delayed driver initialization when driver is statically linked
-   - invoked when module parameter fwpath is modified from userpspace to signal 
-    initializing the WLAN driver
-
-  \return - 0 for success, non zero for failure
-
-  --------------------------------------------------------------------------*/
-static int fwpath_changed_handler(const char *kmessage,
-                                 struct kernel_param *kp)
-{
-   int ret_status;
-
-   if (!wlan_hdd_inited) {
-      ret_status = hdd_driver_init();
-      wlan_hdd_inited = ret_status ? 0 : 1;
-      return ret_status;
-   }
-
-   hdd_driver_exit();
-   
-   msleep(200);
-   
-   ret_status = hdd_driver_init();
-   wlan_hdd_inited = ret_status ? 0 : 1;
-   return ret_status;
-}
-
-/**---------------------------------------------------------------------------
-
-  \brief con_mode_handler() -
-
-  Handler function for module param con_mode when it is changed by userspace
-  Dynamically linked - do nothing
-  Statically linked - exit and init driver, as in rmmod and insmod
-
-  \param  - 
-
-  \return - 
-
-  --------------------------------------------------------------------------*/
-static int con_mode_handler(const char *kmessage,
-                                 struct kernel_param *kp)
-{
-   int ret = param_set_int(kmessage, kp);
-
-   if (ret)
-       return ret;
-
-   return fwpath_changed_handler(kmessage, kp);
-}
-#endif /* #ifdef MODULE */
-
+#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
 /**---------------------------------------------------------------------------
 
   \brief hdd_get_conparam() -
@@ -4380,18 +4285,12 @@ static int con_mode_handler(const char *kmessage,
   --------------------------------------------------------------------------*/
 tVOS_CON_MODE hdd_get_conparam ( void )
 {
-#ifdef MODULE
     return (tVOS_CON_MODE)con_mode;
-#else
-    return (tVOS_CON_MODE)curr_con_mode;
-#endif
+
 }
 void hdd_set_conparam ( v_UINT_t newParam )
 {
   con_mode = newParam;
-#ifndef MODULE
-  curr_con_mode = con_mode;
-#endif
 }
 /**---------------------------------------------------------------------------
 
@@ -4486,6 +4385,7 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
     WLANSAP_SetCounterMeasure(pVosContext, (v_BOOL_t)enable);
 }
 
+#endif /* WLAN_SOFTAP_FEATURE */
 /**---------------------------------------------------------------------------
  *
  *   \brief hdd_get__concurrency_mode() -
@@ -4786,8 +4686,9 @@ MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Qualcomm Atheros, Inc.");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 
-module_param_call(con_mode, con_mode_handler, param_get_int, &con_mode,
-                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
+module_param(con_mode, int, 0);
+#endif
 
 module_param_call(fwpath, fwpath_changed_handler, param_get_string, fwpath,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);

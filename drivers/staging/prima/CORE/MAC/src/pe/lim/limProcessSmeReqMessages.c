@@ -626,7 +626,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /*Store Persona */
         psessionEntry->pePersona = pSmeStartBssReq->bssPersona;
-        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,FL("PE PERSONA=%d"),
+        VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,FL("PE PERSONA=%d\n"),
             psessionEntry->pePersona);
 
         /*Update the phymode*/
@@ -640,8 +640,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->htCapability = IS_DOT11_MODE_HT(psessionEntry->dot11mode);
 #ifdef WLAN_FEATURE_11AC
         psessionEntry->vhtCapability = IS_DOT11_MODE_VHT(psessionEntry->dot11mode);
-        VOS_TRACE(VOS_MODULE_ID_PE,VOS_TRACE_LEVEL_INFO,
-            FL("*****psessionEntry->vhtCapability = %d"),psessionEntry->vhtCapability);
+        VOS_TRACE(VOS_MODULE_ID_PE,VOS_TRACE_LEVEL_FATAL,
+            FL("*****psessionEntry->vhtCapability = %d\n"),psessionEntry->vhtCapability);
 #endif
         palCopyMemory(pMac->hHdd, (void*)&psessionEntry->rateSet,
             (void*)&pSmeStartBssReq->operationalRateSet,
@@ -730,7 +730,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             psessionEntry->htSupportedChannelWidthSet = (pSmeStartBssReq->cbMode)?1:0; // This is already merged value of peer and self - done by csr in csrGetCBModeFromIes
             psessionEntry->htRecommendedTxWidthSet = psessionEntry->htSupportedChannelWidthSet;
             psessionEntry->htSecondaryChannelOffset = pSmeStartBssReq->cbMode;
-            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_INFO,
+            VOS_TRACE(VOS_MODULE_ID_PE, VOS_TRACE_LEVEL_ERROR,
                       FL("cbMode %u"), pSmeStartBssReq->cbMode);
 #ifdef WLAN_FEATURE_11AC
             if(psessionEntry->vhtCapability)
@@ -1096,7 +1096,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif //FEATURE_WLAN_DIAG_SUPPORT
     
     pScanReq = (tpSirSmeScanReq) pMsgBuf;   
-    PELOG1(limLog(pMac, LOG1, FL("SME SCAN REQ numChan %d min %d max %d IELen %d first %d fresh %d unique %d type %d mode %d rsp %d\n"),
+    PELOG1(limLog(pMac, LOG1, FL("SME SCAN REQ numChan %d min %d max %d IELen %d first %d fresh %d unique %d type %d rsp %d\n"),
            pScanReq->channelList.numChannels,
            pScanReq->minChannelTime,
            pScanReq->maxChannelTime,
@@ -1104,9 +1104,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
            pScanReq->returnAfterFirstMatch,
            pScanReq->returnFreshResults,
            pScanReq->returnUniqueResults,
-           pScanReq->scanType,
-           pScanReq->backgroundScanMode,
-           pMac->lim.gLimRspReqd ? 1 : 0);)
+           pScanReq->scanType, pMac->lim.gLimRspReqd ? 1 : 0);)
         
     /*copy the Self MAC address from SmeReq to the globalplace , used for sending probe req.discussed on code review sep18*/
     sirCopyMacAddr(pMac->lim.gSelfMacAddr,  pScanReq->selfMacAddr);
@@ -1178,17 +1176,13 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         pMac->lim.gLim50Band11dScanDone     = 0;
         pMac->lim.gLimReturnAfterFirstMatch =
                                     pScanReq->returnAfterFirstMatch;
-        pMac->lim.gLimBackgroundScanMode =
-                                    pScanReq->backgroundScanMode;
 
         pMac->lim.gLimReturnUniqueResults   =
               ((pScanReq->returnUniqueResults) > 0 ? true : false);
         /* De-activate Heartbeat timers for connected sessions while
-         * scan is in progress if the system is in Active mode *
-         * AND it is not a ROAMING ("background") scan */
-        if(((ePMM_STATE_BMPS_WAKEUP == pMac->pmm.gPmmState) ||
+         * scan is in progress if the system is in Active mode */
+        if((ePMM_STATE_BMPS_WAKEUP == pMac->pmm.gPmmState) ||
            (ePMM_STATE_READY == pMac->pmm.gPmmState))
-            && (pScanReq->backgroundScanMode != eSIR_ROAMING_SCAN ))
         {
           for(i=0;i<pMac->lim.maxBssId;i++)
           {
@@ -1841,13 +1835,12 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tANI_U16           transactionId; 
     tPowerdBm            localPowerConstraint = 0, regMax = 0;
     tANI_U32           teleBcnEn = 0;
-    tANI_U16            nSize;
 
 
     PELOG3(limLog(pMac, LOG3, FL("Received REASSOC_REQ\n"));)
     
-    nSize = __limGetSmeJoinReqSizeForAlloc((tANI_U8 *) pMsgBuf);
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pReassocReq, nSize ))
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pReassocReq, __limGetSmeJoinReqSizeForAlloc((tANI_U8 *) pMsgBuf)))
     {
         // Log error
         limLog(pMac, LOGP,
@@ -1856,7 +1849,8 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
         goto end;
     }
-    (void) palZeroMemory(pMac->hHdd, (void *) pReassocReq, nSize);
+    
+
     if ((limJoinReqSerDes(pMac, (tpSirSmeJoinReq) pReassocReq,
                           (tANI_U8 *) pMsgBuf) == eSIR_FAILURE) ||
         (!limIsSmeJoinReqValid(pMac,
@@ -2448,8 +2442,6 @@ __limProcessSmeDisassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             limPrintMacAddr(pMac, smeDisassocCnf.peerMacAddr, LOGW);)
             return;
         }
-        /* Delete FT session if there exists one */
-        limFTCleanup(pMac);
         limCleanupRxPath(pMac, pStaDs, psessionEntry);
     }
 

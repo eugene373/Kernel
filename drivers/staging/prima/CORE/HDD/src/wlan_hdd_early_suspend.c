@@ -675,22 +675,12 @@ VOS_STATUS hdd_conf_hostarpoffload(hdd_context_t* pHddCtx, v_BOOL_t fenable)
 
            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Enabled \n", __func__);
 
-           if(pHddCtx->dynamic_mcbc_filter.enableCfg)
+           if((HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST ==
+                   pHddCtx->cfg_ini->mcastBcastFilterSetting )
+                    || (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST ==
+                    pHddCtx->cfg_ini->mcastBcastFilterSetting))
            {
-               if((HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
-              pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting) ||
-              (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
-              pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting))
-               {
-                   offLoadRequest.enableOrDisable = 
-                           SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE;
-               }
-           }
-           else if((HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST ==
-              pHddCtx->cfg_ini->mcastBcastFilterSetting ) || 
-              (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST ==
-              pHddCtx->cfg_ini->mcastBcastFilterSetting))
-           {
+               //MCAST filter is set by hdd_conf_mcastbcast_filter fn call
                offLoadRequest.enableOrDisable = 
                        SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE;
            }
@@ -782,7 +772,7 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
                                  hdd_adapter_t *pAdapter)
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
-    VOS_STATUS vstatus = VOS_STATUS_E_FAILURE;
+    VOS_STATUS vstatus;
     tpSirWlanSuspendParam wlanSuspendParam =
       vos_mem_malloc(sizeof(tSirWlanSuspendParam));
 
@@ -807,9 +797,8 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
             {
                 if(pHddCtx->dynamic_mcbc_filter.enableCfg)
                 {
-                  wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                          pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting;
-                  pHddCtx->dynamic_mcbc_filter.enableSuspend = TRUE;
+                   wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                               pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting;
                 }
                 else
                 {
@@ -822,71 +811,57 @@ static void hdd_conf_suspend_ind(hdd_context_t* pHddCtx,
             }
             else
             {
-                if(pHddCtx->dynamic_mcbc_filter.enableCfg)
-                {
-                    if((HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
-                         pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting))
-                   {
-                       wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                     HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST;
-                   }
-                   else if((HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
-                         pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting))
-                   {
-                       wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                             HDD_MCASTBCASTFILTER_FILTER_NONE;
-                   }
-                   else
-                   {
-                       wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                          pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting;
-                   }
-
-                   pHddCtx->dynamic_mcbc_filter.enableSuspend = TRUE;
-                   pHddCtx->dynamic_mcbc_filter.mcBcFilterSuspend = 
-                        wlanSuspendParam->configuredMcstBcstFilterSetting;
-                }
-                else
-                {
-                    if (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
-                        pHddCtx->cfg_ini->mcastBcastFilterSetting)
-                    {
-                        wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                     HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST;
-                    }
-                    else if(HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
-                            pHddCtx->cfg_ini->mcastBcastFilterSetting)
-                    {
-                        wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                             HDD_MCASTBCASTFILTER_FILTER_NONE;
-                    }
-                    else
-                    {
-                        wlanSuspendParam->configuredMcstBcstFilterSetting = 
-                                 pHddCtx->cfg_ini->mcastBcastFilterSetting;
-                    }
-
-                    pHddCtx->dynamic_mcbc_filter.enableSuspend = FALSE;
-                }
-            }
+               if (((pHddCtx->dynamic_mcbc_filter.enableCfg) && 
+                    (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
+                    pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting)) ||
+                    (HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST_BROADCAST == 
+                    pHddCtx->cfg_ini->mcastBcastFilterSetting))
+               {
+                 wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                                 HDD_MCASTBCASTFILTER_FILTER_ALL_MULTICAST;
+               }
+               else if(((pHddCtx->dynamic_mcbc_filter.enableCfg) &&
+                        (HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
+                        pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting)) ||
+                        (HDD_MCASTBCASTFILTER_FILTER_ALL_BROADCAST == 
+                        pHddCtx->cfg_ini->mcastBcastFilterSetting))
+               {
+                 wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                                         HDD_MCASTBCASTFILTER_FILTER_NONE;
+               }
+               else
+               {
+                 if(pHddCtx->dynamic_mcbc_filter.enableCfg) 
+                 {
+                   wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                               pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting;
+                 }
+                 else
+                 {
+                   wlanSuspendParam->configuredMcstBcstFilterSetting = 
+                             pHddCtx->cfg_ini->mcastBcastFilterSetting;
+                 }
+               }
+           }
         }
         else
         {
-            if(pHddCtx->dynamic_mcbc_filter.enableCfg)
-            {
-                wlanSuspendParam->configuredMcstBcstFilterSetting = 
+           if(pHddCtx->dynamic_mcbc_filter.enableCfg)
+           {
+              wlanSuspendParam->configuredMcstBcstFilterSetting = 
                       pHddCtx->dynamic_mcbc_filter.mcastBcastFilterSetting;
-                pHddCtx->dynamic_mcbc_filter.enableSuspend = TRUE;
-                pHddCtx->dynamic_mcbc_filter.mcBcFilterSuspend = 
-                        wlanSuspendParam->configuredMcstBcstFilterSetting;
-            }
-            else
-            {
-                pHddCtx->dynamic_mcbc_filter.enableSuspend = FALSE;
-                wlanSuspendParam->configuredMcstBcstFilterSetting = 
+           }
+           else
+           {
+             wlanSuspendParam->configuredMcstBcstFilterSetting = 
                              pHddCtx->cfg_ini->mcastBcastFilterSetting;
-            }
+           }
         }
+        
+        pHddCtx->dynamic_mcbc_filter.enableSuspend = TRUE;
+        pHddCtx->dynamic_mcbc_filter.mcBcFilterSuspend = 
+                        wlanSuspendParam->configuredMcstBcstFilterSetting;
+
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
         if (pHddCtx->cfg_ini->isMcAddrListFilter)
@@ -2163,9 +2138,6 @@ VOS_STATUS hdd_wlan_re_init(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
       goto err_vosclose;
    }
-
-   /* Exchange capability info between Host and FW and also get versioning info from FW */
-   hdd_exchange_version_and_caps(pHddCtx);
 
    vosStatus = hdd_post_voss_start_config( pHddCtx );
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )

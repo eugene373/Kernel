@@ -7173,14 +7173,14 @@ void sme_QosPmcDeviceStateUpdateInd(void *callbackContext, tPmcState pmcState)
       break;
    default:
       status = eHAL_STATUS_SUCCESS;
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                 "%s: %d: nothing to process in PMC state %d",
                 __FUNCTION__, __LINE__,
                 pmcState);
    }
    if(!HAL_STATUS_SUCCESS(status))
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                 "%s: %d: ignoring Device(PMC) state change to %d",
                 __FUNCTION__, __LINE__,
                 pmcState);
@@ -7206,7 +7206,7 @@ eHalStatus sme_QosProcessOutOfUapsdMode(tpAniSirGlobal pMac)
    pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
    if(!pEntry)
    {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                 "%s: %d: Flow List empty, can't search",
                 __FUNCTION__, __LINE__);
       return eHAL_STATUS_FAILURE;

@@ -908,7 +908,6 @@ tLimMlmOemDataRsp       *gpLimMlmOemDataRsp;
     vos_list_t  gLimMgmtFrameRegistratinQueue;
     tANI_U32    actionFrameSessionId;
 #endif
-    tSirBackgroundScanMode gLimBackgroundScanMode;
 #ifdef WLAN_FEATURE_11AC
     tANI_U8    vhtCapabilityPresentInBeacon;
     tANI_U8    apCenterChan;

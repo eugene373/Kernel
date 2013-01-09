@@ -128,8 +128,7 @@ typedef enum
  * Check the version number and find if MCC feature is supported or not
  */
 #define IS_MCC_SUPPORTED (WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual( 0, 1, 1, 0))
-#define IS_SLM_SESSIONIZATION_SUPPORTED_BY_FW (WDA_getFwWlanFeatCaps(SLM_SESSIONIZATION))
-
+#define IS_SLM_SESSIONIZED (WDA_IsWcnssWlanReportedVersionGreaterThanOrEqual( 7, 0, 0, 0))
 
 /*--------------------------------------------------------------------------
   Definitions for Data path APIs
@@ -2039,27 +2038,4 @@ tANI_U8 WDA_getHostWlanFeatCaps(tANI_U8 featEnumValue);
 ============================================================================*/
 tANI_U8 WDA_getFwWlanFeatCaps(tANI_U8 featEnumValue);
 
-/*==========================================================================
-  FUNCTION   WDA_TransportChannelDebug
-
-  DESCRIPTION 
-    Display Transport Channel debugging information
-    User may request to display DXE channel snapshot
-    Or if host driver detects any abnormal stcuk may display
-
-  PARAMETERS
-    displaySnapshot : Dispaly DXE snapshot option
-    enableStallDetect : Enable stall detect feature
-                        This feature will take effect to data performance
-                        Not integrate till fully verification
-
-  RETURN VALUE
-    NONE
-
-===========================================================================*/
-void WDA_TransportChannelDebug
-(
-   v_BOOL_t   displaySnapshot,
-   v_BOOL_t   toggleStallDetect
-);
 #endif

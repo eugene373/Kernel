@@ -498,7 +498,7 @@ sapSignalHDDevent
     switch (sapHddevent)
     {
         case eSAP_STA_ASSOC_IND:
-            //  TODO - Indicate the assoc request indication to OS
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "TODO: Indicate the assoc request indication to OS\n");
             sapApAppEvent.sapHddEventCode = eSAP_STA_ASSOC_IND;
 
             vos_mem_copy( &sapApAppEvent.sapevt.sapAssocIndication.staMac, pCsrRoamInfo->peerMac,sizeof(tSirMacAddr));

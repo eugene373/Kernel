@@ -101,10 +101,6 @@ eHalStatus sme_HandlePreChannelSwitchInd(tHalHandle hHal);
 
 eHalStatus sme_HandlePostChannelSwitchInd(tHalHandle hHal);
 
-#ifdef FEATURE_WLAN_LFR
-tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac);
-#endif
-
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
 {
@@ -1877,29 +1873,7 @@ eHalStatus sme_Close(tHalHandle hHal)
 
    return status;
 }
-#ifdef FEATURE_WLAN_LFR
-tANI_BOOLEAN csrIsScanAllowed(tpAniSirGlobal pMac)
-{
-#if 0
-        switch(pMac->roam.neighborRoamInfo.neighborRoamState) {
-                case eCSR_NEIGHBOR_ROAM_STATE_REPORT_SCAN:
-                case eCSR_NEIGHBOR_ROAM_STATE_PREAUTHENTICATING:
-                case eCSR_NEIGHBOR_ROAM_STATE_PREAUTH_DONE:
-                case eCSR_NEIGHBOR_ROAM_STATE_REASSOCIATING:
-                        return eANI_BOOLEAN_FALSE;
-                default:
-                        return eANI_BOOLEAN_TRUE;
-        }
-#else
-        /*
-         * TODO: always return TRUE for now until
-         * we figure out why we could be stuck in
-         * one of the roaming states forever.
-         */
-        return eANI_BOOLEAN_TRUE;
-#endif
-}
-#endif
+
 /* ---------------------------------------------------------------------------
     \fn sme_ScanRequest
     \brief a wrapper function to Request a 11d or full scan from CSR.
@@ -1926,17 +1900,8 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
             if ( HAL_STATUS_SUCCESS( status ) )
             {
                 {
-#ifdef FEATURE_WLAN_LFR
-                    if(csrIsScanAllowed(pMac)) {
-#endif
-                            status = csrScanRequest( hHal, sessionId, pscanReq,
-                                                     pScanRequestID, callback, pContext );
-#ifdef FEATURE_WLAN_LFR
-                    } else {
-                            /*HandOff is in progress. So schedule this scan later*/
-                            status = eHAL_STATUS_RESOURCES;
-                    }
-#endif
+                    status = csrScanRequest( hHal, sessionId, pscanReq,
+                                     pScanRequestID, callback, pContext );
                 }
                   
                 sme_ReleaseGlobalLock( &pMac->sme );
@@ -1997,20 +1962,6 @@ eHalStatus sme_ScanFlushResult(tHalHandle hHal, tANI_U8 sessionId)
    return (status);
 }
 
-eHalStatus sme_ScanFlushP2PResult(tHalHandle hHal, tANI_U8 sessionId)
-{
-        eHalStatus status = eHAL_STATUS_FAILURE;
-        tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-        status = sme_AcquireGlobalLock( &pMac->sme );
-        if ( HAL_STATUS_SUCCESS( status ) )
-        {
-                status = csrScanFlushP2PResult( hHal );
-                sme_ReleaseGlobalLock( &pMac->sme );
-        }
-
-        return (status);
-}
 
 /* ---------------------------------------------------------------------------
     \fn sme_ScanResultGetFirst
@@ -6650,21 +6601,3 @@ eHalStatus sme_GetCurrentCountryCode(tHalHandle hHal, tANI_U8 *pCountry)
     return csrGetCurrentCountryCode(pMac, pCountry);
 }
 
-/* ---------------------------------------------------------------------------
-    \fn sme_transportDebug
-    \brief  Dynamically monitoring Transport channels
-            Private IOCTL will querry transport channel status if driver loaded
-    \param  displaySnapshot Dispaly transport cahnnel snapshot option
-    \param  toggleStallDetect Enable stall detect feature
-                              This feature will take effect to data performance
-                              Not integrate till fully verification
-    \- return NONE
-    -------------------------------------------------------------------------*/
-void sme_transportDebug
-(
-   v_BOOL_t  displaySnapshot,
-   v_BOOL_t  toggleStallDetect
-)
-{
-   WDA_TransportChannelDebug(displaySnapshot, toggleStallDetect);
-}

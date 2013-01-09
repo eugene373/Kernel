@@ -103,7 +103,7 @@ static tSirRetStatus
 limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
                      tANI_S16 rLen, tANI_S16 *lenUsed, tANI_U8 *pBuf)
 {
-    tANI_S16 len = 0;
+    tANI_U16 len = 0;
 
     pBssDescription->length = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
@@ -219,7 +219,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     pBssDescription->mdie[2] = *pBuf++;
     len --;
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
-    PELOGE(limLog(pMac, LOG1, FL("mdie=%02x %02x %02x\n"), 
+    PELOGE(limLog(pMac, LOGE, FL("mdie=%02x %02x %02x\n"), 
         pBssDescription->mdie[0],
         pBssDescription->mdie[1],
         pBssDescription->mdie[2]);)
@@ -240,57 +240,30 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 #endif
-    pBssDescription->fProbeRsp = *pBuf++;
-    len  -= sizeof(tANI_U8);
-    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-        return eSIR_FAILURE;
-
-    /* 3 reserved bytes for padding */
-    pBuf += (3 * sizeof(tANI_U8));
-    len  -= 3;
-
-    pBssDescription->WscIeLen = limGetU32( pBuf );
-    pBuf += sizeof(tANI_U32);
-    len  -= sizeof(tANI_U32);
-    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-        return eSIR_FAILURE;
     
-    if (WSCIE_PROBE_RSP_LEN < len)
+    if (pBssDescription->WscIeLen)
     {
-        /* Do not copy with WscIeLen
-         * if WscIeLen is not set properly, memory overwrite happen
-         * Ended up with memory corruption and crash
-         * Copy with Fixed size */
         palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->WscIeProbeRsp,
                        pBuf,
-                       WSCIE_PROBE_RSP_LEN);
-
+                       pBssDescription->WscIeLen);
     }
-    else
-    {
-        limLog(pMac, LOGE,
-                     FL("remaining bytes len %d is less than WSCIE_PROBE_RSP_LEN\n"),
-                     pBssDescription->WscIeLen);
-        return eSIR_FAILURE;
-    }
+    
+    pBuf += (sizeof(pBssDescription->WscIeProbeRsp) + 
+             sizeof(pBssDescription->WscIeLen) + 
+             sizeof(pBssDescription->fProbeRsp) + 
+             sizeof(tANI_U32));
+    
+    len -= (sizeof(pBssDescription->WscIeProbeRsp) + 
+             sizeof(pBssDescription->WscIeLen) + 
+             sizeof(pBssDescription->fProbeRsp) + 
+             sizeof(tANI_U32));
 
-    /* 1 reserved byte padding */
-    pBuf += (WSCIE_PROBE_RSP_LEN + 1);
-    len -= (WSCIE_PROBE_RSP_LEN + 1);
-
-    if (len > 0)
+    if (len)
     {
         palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->ieFields,
                        pBuf,
                        len);
     }
-    else if (len < 0)
-    {
-        limLog(pMac, LOGE, 
-                     FL("remaining length is negative. len = %d, actual length = %d\n"), 
-                     len, pBssDescription->length);
-        return eSIR_FAILURE;
-    }    
 
     return eSIR_SUCCESS;
 } /*** end limGetBssDescription() ***/
@@ -2049,7 +2022,7 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     pJoinReq->powerCap.minTxPower = *pBuf++;
     pJoinReq->powerCap.maxTxPower = *pBuf++;
     len -=2;
-    limLog(pMac, LOG1, FL("Power Caps: Min power = %d, Max power = %d\n"), pJoinReq->powerCap.minTxPower, pJoinReq->powerCap.maxTxPower);
+    limLog(pMac, LOGE, FL("Power Caps: Min power = %d, Max power = %d\n"), pJoinReq->powerCap.minTxPower, pJoinReq->powerCap.maxTxPower);
 
     pJoinReq->supportedChannels.numChnl = *pBuf++;
     len--;

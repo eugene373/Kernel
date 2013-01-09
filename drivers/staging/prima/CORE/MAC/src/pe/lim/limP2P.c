@@ -137,7 +137,7 @@ int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg)
                 /* get the duration from the request */
                 val = SYS_MS_TO_TICKS(MsgBuff->duration);
 
-                limLog( pMac, LOG2, "Start listen duration = %d", val);
+                limLog( pMac, LOGE, "Start listen duration = %d", val);
                 if (tx_timer_change(
                         &pMac->lim.limTimers.gLimRemainOnChannelTimer, val, 0)
                                           != TX_SUCCESS)
@@ -325,7 +325,7 @@ void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
       /* get the duration from the request */
     val = SYS_MS_TO_TICKS(MsgRemainonChannel->duration);
 
-    limLog( pMac, LOG2, "Start listen duration = %d", val);
+    limLog( pMac, LOGE, "Start listen duration = %d", val);
     if (tx_timer_change(&pMac->lim.limTimers.gLimRemainOnChannelTimer,
                                                 val, 0) != TX_SUCCESS)
     {
@@ -631,7 +631,7 @@ void limSetHtCaps(tpAniSirGlobal pMac, tpPESession psessionEntry, tANI_U8 *pIeSt
     PopulateDot11fHTCaps(pMac, psessionEntry, &dot11HtCap);
     pIe = limGetIEPtr(pMac,pIeStartPtr, nBytes,
                                        DOT11F_EID_HTCAPS,ONE_BYTE);
-   limLog( pMac, LOG2, FL("pIe 0x%x dot11HtCap.supportedMCSSet[0]=0x%x"),
+   limLog( pMac, LOGE, FL("pIe 0x%x dot11HtCap.supportedMCSSet[0]=0x%x"),
         (tANI_U32)pIe,dot11HtCap.supportedMCSSet[0]);
     if(pIe)
     {
@@ -968,7 +968,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
         else
         {
              pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
-             limLog( pMac, LOG2, FL("lim.actionFrameSessionId = %lu\n" ), 
+             limLog( pMac, LOGE, FL("lim.actionFrameSessionId = %lu\n" ), 
                      pMac->lim.actionFrameSessionId);
 
         }

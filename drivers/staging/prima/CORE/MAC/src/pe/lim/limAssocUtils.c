@@ -603,7 +603,7 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
     tSirRetStatus       retCode = eSIR_SUCCESS;
 
 
-    PELOG2(limLog( pMac, LOG2, FL("**Initiate cleanup"));)
+    PELOGE(limLog( pMac, LOGE, FL("**Initiate cleanup\n"));)
 
     limAbortBackgroundScan( pMac );
 
@@ -1393,28 +1393,6 @@ limDecideShortSlot(tpAniSirGlobal pMac, tpDphHashNode pStaDs,
        }
    }
 }
-
-void
-limPostReassocFailure(tpAniSirGlobal pMac,
-                      tSirResultCodes resultCode,
-                      tANI_U16 protStatusCode,tpPESession psessionEntry)
-{
-    tLimMlmReassocCnf   mlmReassocCnf;
-
-    psessionEntry->limMlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, psessionEntry->peSessionId, eLIM_MLM_LINK_ESTABLISHED_STATE));
-
-    // 'Change' timer for future activations
-    limDeactivateAndChangeTimer(pMac, eLIM_REASSOC_FAIL_TIMER);
-
-    mlmReassocCnf.resultCode = resultCode;
-    mlmReassocCnf.protStatusCode = protStatusCode;
-    /* Update PE session Id */
-    mlmReassocCnf.sessionId = psessionEntry->peSessionId;
-    limPostSmeMessage(pMac,
-                      LIM_MLM_REASSOC_CNF,
-                      (tANI_U32 *) &mlmReassocCnf);
-} /*** end limPostReassocFailure() ***/
 
 /**
  * limRestorePreReassocState()
@@ -2240,7 +2218,7 @@ limAddSta(
         pAddStaParams->uAPSD |= pAddStaParams->uAPSD << 4;
 
         pAddStaParams->maxSPLen = pStaDs->qos.capability.qosInfo.maxSpLen;
-        limLog( pMac, LOG1, FL( "uAPSD = 0x%x, maxSpLen = %d" ),
+        limLog( pMac, LOGE, FL( "uAPSD = 0x%x, maxSpLen = %d" ),
             pAddStaParams->uAPSD, pAddStaParams->maxSPLen);
     }
 #endif
@@ -2254,7 +2232,7 @@ limAddSta(
     msgQ.bodyptr = pAddStaParams;
     msgQ.bodyval = 0;
 
-    limLog( pMac, LOG1, FL( "Sending SIR_HAL_ADD_STA_REQ for assocId %d\n" ),
+    limLog( pMac, LOGE, FL( "Sending SIR_HAL_ADD_STA_REQ for assocId %d\n" ),
             pStaDs->assocId);
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
 
@@ -2374,7 +2352,7 @@ limDelSta(
     msgQ.bodyptr = pDelStaParams;
     msgQ.bodyval = 0;
 
-    limLog( pMac, LOG1, FL( "Sending SIR_HAL_DELETE_STA_REQ for STAID: %X and AssocID: %d" ),
+    limLog( pMac, LOGE, FL( "Sending SIR_HAL_DELETE_STA_REQ for STAID: %X and AssocID: %d\n" ),
     pDelStaParams->staIdx, pDelStaParams->assocId);
     MTRACE(macTraceMsgTx(pMac, psessionEntry->peSessionId, msgQ.type));
     retCode = wdaPostCtrlMsg( pMac, &msgQ );

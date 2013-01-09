@@ -270,12 +270,12 @@ void WLANTL_HSDebugDisplay
    {
       if(VOS_TRUE == tlCtxt->isBMPS)
       {
-         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO," ----> CRegion %d, hRSSI:NA, BMPS, Alpha %d",
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR," ----> CRegion %d, hRSSI:NA, BMPS, Alpha %d",
                       currentHO->regionNumber, currentHO->alpha));
       }
       else
       {
-         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO," ----> CRegion %d, hRSSI %d, Alpha %d",
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR," ----> CRegion %d, hRSSI %d, Alpha %d",
                       currentHO->regionNumber,
                       currentHO->historyRSSI,
                       currentHO->alpha));
@@ -1094,7 +1094,6 @@ VOS_STATUS WLANTL_HSHandleRXFrame
    if(VOS_TRUE == tlCtxt->isBMPS)
    {
       WLANTL_HSGetRSSI(pAdapter, pBDHeader, STAid, &currentAvgRSSI);
-      currentHO->historyRSSI = currentAvgRSSI;
       return status;
    }
 
@@ -1232,7 +1231,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
 
    currentHO = &(tlCtxt->hoSupport.currentHOState);
    hoSupport = &(tlCtxt->hoSupport);
-   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Make Registration Module %d, Event %d, RSSI %d", moduleID, triggerEvent, rssiValue));
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make Registration Module %d, Event %d, RSSI %d", moduleID, triggerEvent, rssiValue));
 
    if((WLANTL_MAX_AVAIL_THRESHOLD < currentHO->numThreshold) ||
       (WLANTL_MAX_AVAIL_THRESHOLD == currentHO->numThreshold))
@@ -1261,12 +1260,12 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          {
             for(sIdx = 0; sIdx < WLANTL_HS_NUM_CLIENT; sIdx++)
             {
-               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Reg CB P 0x%x, registered CB P 0x%x",
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Reg CB P 0x%x, registered CB P 0x%x",
                              crossCBFunction,
                              hoSupport->registeredInd[idx].crossCBFunction[sIdx]));
                if(crossCBFunction == hoSupport->registeredInd[idx].crossCBFunction[sIdx])
                {
-                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Same RSSI %d, Same CB 0x%x already registered",
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Same RSSI %d, Same CB 0x%x already registered",
                                rssiValue, crossCBFunction));
                   WLANTL_HSDebugDisplay(pAdapter);
                   THSRELEASELOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
@@ -1332,16 +1331,16 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    currentHO->numThreshold++;
    if((VOS_FALSE == tlCtxt->isBMPS) && (rssiValue > currentHO->historyRSSI))
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Added Threshold above current RSSI level, old RN %d", currentHO->regionNumber));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Added Threshold above current RSSI level, old RN %d", currentHO->regionNumber));
       if(4 > currentHO->regionNumber)
       {
          currentHO->regionNumber++;
       }
       else
       {
-         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Current region number is max %d, cannot increase anymore", currentHO->regionNumber));
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Current region number is max %d, cannot increase anymore", currentHO->regionNumber));
       }
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"increase region number without notification %d", currentHO->regionNumber));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"increase region number without notification %d", currentHO->regionNumber));
    }
    else if(VOS_TRUE == tlCtxt->isBMPS)
    {
@@ -1352,7 +1351,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
             currentHO->regionNumber++;
             if((WLANTL_HO_THRESHOLD_DOWN == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent))
             {
-               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification"));
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification"));
                WLANTL_HSSerializeTlIndication(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt, crossCBFunction);
             }
          }
@@ -1361,7 +1360,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          {
             if((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent))
             {
-               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Registered RSSI value smaller than Current RSSI"));
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value smaller than Current RSSI"));
             }
          }
       }
@@ -1371,7 +1370,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          {
             if((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent))
             {
-               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Registered RSSI value smaller than Current RSSI"));
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value smaller than Current RSSI"));
             }
          }
       }
@@ -1381,14 +1380,14 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       (rssiValue >= currentHO->historyRSSI) && (0 != currentHO->historyRSSI) &&
       ((WLANTL_HO_THRESHOLD_DOWN == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent)))
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification"));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification"));
       WLANTL_HSSerializeTlIndication(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt, crossCBFunction);
    }
    else if((VOS_FALSE == tlCtxt->isBMPS) &&
            (rssiValue < currentHO->historyRSSI) && (0 != currentHO->historyRSSI) &&
            ((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent)))
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Registered RSSI value smaller than Current RSSI, and UP event, Send Notification"));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Registered RSSI value smaller than Current RSSI, and UP event, Send Notification"));
       WLANTL_HSSerializeTlIndication(pAdapter, WLANTL_HO_THRESHOLD_UP, usrCtxt, crossCBFunction);
    }
 
@@ -1442,7 +1441,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
 
    if(0 == tlCtxt->hoSupport.currentHOState.numThreshold)
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Empty list, can not remove"));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Empty list, can not remove"));
       return VOS_STATUS_E_EMPTY;
    }
 
@@ -1450,14 +1449,14 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
    currentHO = &(tlCtxt->hoSupport.currentHOState);
    hoSupport = &(tlCtxt->hoSupport);
 
-   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"DEL target RSSI %d, event %d", rssiValue, triggerEvent));
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"DEL target RSSI %d, event %d", rssiValue, triggerEvent));
 
    if((VOS_TRUE == tlCtxt->isBMPS) && (0 < currentHO->regionNumber))
    {
       if(rssiValue >= hoSupport->registeredInd[currentHO->regionNumber - 1].rssiValue)
       {
          bmpsAbove = VOS_TRUE;
-         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Remove Threshold larger than current region"));
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Remove Threshold larger than current region"));
       }
    }
 
@@ -1530,7 +1529,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
 
    if((VOS_FALSE == tlCtxt->isBMPS) && (rssiValue >= currentHO->historyRSSI))
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Removed Threshold above current RSSI level, old RN %d", currentHO->regionNumber));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Removed Threshold above current RSSI level, old RN %d", currentHO->regionNumber));
       if(0 < currentHO->regionNumber)
       {
          currentHO->regionNumber--;

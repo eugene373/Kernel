@@ -59,7 +59,7 @@
 #define CSR_SCAN_RETURN_AFTER_5_BAND_11d_FOUND      ( 0x80 )
 #define CSR_SCAN_RETURN_AFTER_24_BAND_11d_FOUND     ( 0x40 )
 #define CSR_SCAN_RETURN_AFTER_EITHER_BAND_11d_FOUND ( CSR_SCAN_RETURN_AFTER_5_BAND_11d_FOUND | CSR_SCAN_RETURN_AFTER_24_BAND_11d_FOUND )
-#define CSR_NUM_RSSI_CAT        15
+#define CSR_NUM_RSSI_CAT        5
 #define CSR_MAX_STATISTICS_REQ        10
 
 //Support for multiple session
@@ -75,11 +75,6 @@
      (&(pMac)->roam.roamSession[(sessionId)]) :\
      NULL \
 )
-
-//Support for "Fast roaming" (i.e., CCX, LFR, or 802.11r.)
-#define CSR_BG_SCAN_OCCUPIED_CHANNEL_LIST_LEN 15  
-#define CSR_BG_SCAN_VALID_CHANNEL_LIST_CHUNK_SIZE 3
-#define CSR_BG_SCAN_CHANNEL_LIST_LEN (CSR_BG_SCAN_OCCUPIED_CHANNEL_LIST_LEN + CSR_BG_SCAN_VALID_CHANNEL_LIST_CHUNK_SIZE)
 
 
 
@@ -168,7 +163,6 @@ typedef enum
     eCsrSmeIssuedFTReassoc,
     eCsrForcedDisassocSta,
     eCsrForcedDeauthSta,
-    eCsrPerformPreauth,
     
 }eCsrRoamReason;
 
@@ -499,7 +493,6 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN shortSlotTime;
     tANI_BOOLEAN ProprietaryRatesEnabled;
     tANI_BOOLEAN  fenableMCCMode;
-    tANI_BOOLEAN  fAllowMCCGODiffBI;
     tANI_U16 TxRate;
     tANI_U8 AdHocChannel24;
     tANI_U8 AdHocChannel5G;
@@ -575,7 +568,9 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN addTSWhenACMIsOff;
 
     tANI_BOOLEAN fValidateList;
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
     tANI_BOOLEAN doBMPSWorkaround;
+#endif
 
     //To enable/disable scanning 2.4Ghz channels twice on a single scan request from HDD
     tANI_BOOLEAN fScanTwice;
@@ -688,9 +683,6 @@ typedef struct tagCsrScanStruct
 #ifdef WLAN_AP_STA_CONCURRENCY
     tDblLinkList scanCmdPendingList;
 #endif    
-    tCsrChannel occupiedChannels;   //This includes all channels on which candidate APs are found
-    
-    tANI_BOOLEAN fIgnore_chan165;
 }tCsrScanStruct;
 
 
@@ -1045,7 +1037,9 @@ tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsInfraConnected( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsConcurrentInfraConnected( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsConcurrentSessionRunning( tpAniSirGlobal pMac );
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
 tANI_BOOLEAN csrIsInfraApStarted( tpAniSirGlobal pMac );
+#endif
 tANI_BOOLEAN csrIsIBSSStarted( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsBTAMPStarted( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsBTAMP( tpAniSirGlobal pMac, tANI_U32 sessionId );
@@ -1222,13 +1216,11 @@ tANI_BOOLEAN csrRoamIs11rAssoc(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrRoamIsCCXAssoc(tpAniSirGlobal pMac);
 #endif
 
+#ifndef BMPS_WORKAROUND_NOT_NEEDED
 void csrDisconnectAllActiveSessions(tpAniSirGlobal pMac);
-
+#endif
 #ifdef FEATURE_WLAN_LFR
 //Returns whether "Legacy Fast Roaming" is enabled...or not
 tANI_BOOLEAN csrRoamIsFastRoamEnabled(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrIsChannelPresentInList( tANI_U8 *pChannelList, int  numChannels, tANI_U8   channel );
-VOS_STATUS csrAddToChannelListFront( tANI_U8 *pChannelList, int  numChannels, tANI_U8   channel );
-tANI_BOOLEAN csrNeighborRoamIsSsidCandidateMatch( tpAniSirGlobal pMac, tDot11fBeaconIEs *pIes);
 #endif
 
