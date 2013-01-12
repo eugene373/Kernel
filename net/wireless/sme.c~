@@ -655,6 +655,8 @@ void cfg80211_roamed_bss(struct net_device *dev,
 		return;
 
 	ev->type = EVENT_ROAMED;
+	ev->rm.channel = channel;
+	memcpy(ev->rm.bssid, bssid, ETH_ALEN);
 	ev->rm.req_ie = ((u8 *)ev) + sizeof(*ev);
 	ev->rm.req_ie_len = req_ie_len;
 	memcpy((void *)ev->rm.req_ie, req_ie, req_ie_len);
@@ -668,6 +670,7 @@ void cfg80211_roamed_bss(struct net_device *dev,
 	spin_unlock_irqrestore(&wdev->event_lock, flags);
 	queue_work(cfg80211_wq, &rdev->event_work);
 }
+EXPORT_SYMBOL(cfg80211_roamed);
 
 void __cfg80211_disconnected(struct net_device *dev, const u8 *ie,
 			     size_t ie_len, u16 reason, bool from_ap)

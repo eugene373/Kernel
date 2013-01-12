@@ -247,6 +247,8 @@ struct cfg80211_event {
 			u16 status;
 		} cr;
 		struct {
+			struct ieee80211_channel *channel;
+			u8 bssid[ETH_ALEN];
 			const u8 *req_ie;
 			const u8 *resp_ie;
 			size_t req_ie_len;
@@ -395,7 +397,8 @@ int cfg80211_disconnect(struct cfg80211_registered_device *rdev,
 			struct net_device *dev, u16 reason,
 			bool wextev);
 void __cfg80211_roamed(struct wireless_dev *wdev,
-		       struct cfg80211_bss *bss,
+		       struct ieee80211_channel *channel,
+		       const u8 *bssid,
 		       const u8 *req_ie, size_t req_ie_len,
 		       const u8 *resp_ie, size_t resp_ie_len);
 int cfg80211_mgd_wext_connect(struct cfg80211_registered_device *rdev,
@@ -425,6 +428,7 @@ int cfg80211_change_iface(struct cfg80211_registered_device *rdev,
 			  struct net_device *dev, enum nl80211_iftype ntype,
 			  u32 *flags, struct vif_params *params);
 void cfg80211_process_rdev_events(struct cfg80211_registered_device *rdev);
+void cfg80211_process_wdev_events(struct wireless_dev *wdev);
 
 int cfg80211_can_change_interface(struct cfg80211_registered_device *rdev,
 				  struct wireless_dev *wdev,
