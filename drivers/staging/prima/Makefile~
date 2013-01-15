@@ -475,9 +475,7 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_AP_STA_CONCURRENCY \
         -DFEATURE_WLAN_SCAN_PNO \
         -DWLAN_FEATURE_PACKET_FILTERING \
-	-DWLAN_FEATURE_VOWIFI \
-	-DWLAN_FEATURE_WFD \
-	-DWLAN_FEATURE_P2P
+	-DWLAN_FEATURE_VOWIFI 
 
 # there are still pieces of code which are conditional upon these
 # need to investigate all of them to see which should also be
@@ -495,6 +493,11 @@ endif
 ifeq ($(CONFIG_SLUB_DEBUG_ON),y)
 CDEFINES += -DTIMER_MANAGER
 CDEFINES += -DMEMORY_DEBUG
+endif
+
+ifeq ($(HAVE_CFG80211),1)
+CDEFINES += -DWLAN_FEATURE_P2P
+CDEFINES += -DWLAN_FEATURE_WFD
 endif
 
 ifeq ($(CONFIG_QCOM_CCX),y)
